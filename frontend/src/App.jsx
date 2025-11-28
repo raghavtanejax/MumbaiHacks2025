@@ -6,12 +6,19 @@ function App() {
   const [imageBase64, setImageBase64] = useState(null)
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null) // Added error state
 
   const analyzeClaim = async () => {
     if (!claim && !imageBase64) return
+
     setLoading(true)
     setResult(null)
+    setError(null) // Clear previous errors
+
     try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+
       const response = await fetch('http://localhost:8000/analyze', {
         method: 'POST',
         headers: {
@@ -19,14 +26,26 @@ function App() {
         },
         body: JSON.stringify({
           text: claim,
-          image_base64: imageBase64
+          image: imageBase64 // Changed from image_base64 to image
         }),
+        signal: controller.signal
       })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`)
+      }
+
       const data = await response.json()
       setResult(data)
     } catch (error) {
       console.error('Error analyzing claim:', error)
-      alert('Failed to analyze claim. Make sure the backend is running.')
+      if (error.name === 'AbortError') {
+        setError("Request timed out. The server took too long to respond.")
+      } else {
+        setError("Failed to connect to the server. Please ensure the backend is running.")
+      }
     } finally {
       setLoading(false)
     }
@@ -102,10 +121,17 @@ function App() {
           </div>
         </div>
 
+        {error && (
+          <div className="card" style={{ marginTop: '2rem', borderLeft: '4px solid var(--color-danger)', backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
+            <h3 style={{ color: 'var(--color-danger)', margin: 0 }}>Error</h3>
+            <p style={{ margin: '0.5rem 0 0 0' }}>{error}</p>
+          </div>
+        )}
+
         {result && (
           <div className="card" style={{
             marginTop: '2rem', borderTop: `4px solid ${result.verdict.includes('True') ? 'var(--color-success)' :
-                result.verdict.includes('False') || result.verdict.includes('Misleading') ? 'var(--color-danger)' : 'var(--color-warning)'
+              result.verdict.includes('False') || result.verdict.includes('Misleading') ? 'var(--color-danger)' : 'var(--color-warning)'
               }`
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>

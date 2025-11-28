@@ -33,17 +33,15 @@ async def analyze_claim(request: AnalysisRequest):
 
     try:
         # Run the agent
-        response = agent.invoke({"input": f"Analyze this health claim for misinformation: {query}. Return the verdict (True/False/Misleading), confidence, explanation, sources, and corrective info."})
-        output = response["output"]
+        # The agent now returns a dict (either from JSON parse or mock)
+        result = agent.invoke({"input": f"Analyze this health claim for misinformation: {query}. Return the verdict (True/False/Misleading), confidence, explanation, sources, and corrective info."})
         
-        # Parse the output (This is a simplification. In a real app, we'd use structured output parsing)
-        # For now, we'll just return the raw output in the explanation field.
         return AnalysisResult(
-            verdict="See Explanation",
-            confidence=0.9,
-            explanation=output,
-            sources=["DuckDuckGo", "Medical DB"],
-            corrective_information="See Explanation"
+            verdict=result.get("verdict", "Unverified"),
+            confidence=result.get("confidence", 0.0),
+            explanation=result.get("explanation", "No explanation provided."),
+            sources=result.get("sources", []),
+            corrective_information=result.get("corrective_information", None)
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

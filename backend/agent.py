@@ -54,60 +54,39 @@ class LangGraphAdapter:
         query = input_dict.get("input", "")
         messages = [HumanMessage(content=query)]
         
-        max_retries = 1 # Reduced retries to prevent hanging
-        current_try = 0
-        
+        print(f"DEBUG: Starting analysis for query: {query}")
         try:
-            while current_try < max_retries:
-                print(f"DEBUG: Invoking agent, attempt {current_try + 1}")
-                result = self.graph.invoke({"messages": messages})
-                last_message = result["messages"][-1]
-                content = last_message.content
-                print(f"DEBUG: Agent response: {content[:100]}...")
-                
-                # Validate
-                is_valid, feedback = self.validate_response(content)
-                
-                if is_valid:
-                    print("DEBUG: Validation passed")
-                    # Try to parse JSON from the content
-                    import json
-                    import re
-                    try:
-                        match = re.search(r'\{.*\}', content, re.DOTALL)
-                        if match:
-                            return json.loads(match.group(0))
-                        else:
-                            return {
-                                "verdict": "Unverified",
-                                "confidence": 0.0,
-                                "explanation": content,
-                                "sources": [],
-                                "corrective_information": None
-                            }
-                    except:
-                         return {
-                            "verdict": "Unverified",
-                            "confidence": 0.0,
-                            "explanation": content,
-                            "sources": [],
-                            "corrective_information": None
-                        }
-                
-                # If invalid, add feedback and retry
-                print(f"Safety Check Failed (Attempt {current_try+1}/{max_retries}): {feedback}")
-                messages.append(last_message) # Add the agent's bad response
-                messages.append(HumanMessage(content=f"Safety Agent Feedback: {feedback}. Please regenerate the response fixing these issues."))
-                current_try += 1
-                
-            # If we run out of retries, return the last one (or a failure message)
-            return {
-                "verdict": "Unverified",
-                "confidence": 0.0,
-                "explanation": "Safety Agent rejected the response after multiple attempts. Please try again.",
-                "sources": [],
-                "corrective_information": None
-            }
+            # Direct invocation without safety loop for debugging
+            result = self.graph.invoke({"messages": messages})
+            last_message = result["messages"][-1]
+            content = last_message.content
+            print(f"DEBUG: Agent raw response: {content[:200]}...")
+            
+            # Try to parse JSON
+            import json
+            import re
+            try:
+                match = re.search(r'\{.*\}', content, re.DOTALL)
+                if match:
+                    return json.loads(match.group(0))
+                else:
+                    return {
+                        "verdict": "Unverified",
+                        "confidence": 0.0,
+                        "explanation": content,
+                        "sources": [],
+                        "corrective_information": None
+                    }
+            except Exception as e:
+                print(f"JSON Parse Error: {e}")
+                return {
+                    "verdict": "Unverified",
+                    "confidence": 0.0,
+                    "explanation": content,
+                    "sources": [],
+                    "corrective_information": None
+                }
+
         except Exception as e:
             print(f"CRITICAL ERROR in Agent Invoke: {e}")
             return {

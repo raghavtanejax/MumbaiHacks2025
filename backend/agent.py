@@ -5,7 +5,32 @@ from langchain_core.messages import HumanMessage
 from langchain_core.tools import Tool
 import os
 
-# Mock OCR Tool
+# Real OCR using Gemini Vision
+def extract_text_from_image(image_base64: str) -> str:
+    try:
+        if not image_base64:
+            return ""
+            
+        # Remove header if present (e.g., "data:image/jpeg;base64,")
+        if "," in image_base64:
+            image_base64 = image_base64.split(",")[1]
+
+        llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0)
+        
+        message = HumanMessage(
+            content=[
+                {"type": "text", "text": "Transcribe the text in this image exactly. If there is no text, describe the image relevant to health."},
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"}}
+            ]
+        )
+        
+        response = llm.invoke([message])
+        return response.content
+    except Exception as e:
+        print(f"OCR Error: {e}")
+        return f"Error extracting text: {e}"
+
+# Mock OCR Tool (kept for backward compatibility or tool usage)
 def mock_ocr(image_path: str) -> str:
     return "Extracted text from image: Drinking bleach cures COVID-19."
 

@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from models import AnalysisRequest, AnalysisResult
-from agent import get_agent
+from agent import get_agent, extract_text_from_image
 
 app = FastAPI(title="Veritas Health Agent API")
 
@@ -23,10 +23,15 @@ async def analyze_claim(request: AnalysisRequest):
     agent = get_agent()
     
     query = request.text
-    if not query and request.image_base64:
-        # In a real app, we'd decode the image and pass it to OCR.
-        # Here we'll just simulate the agent using the OCR tool.
-        query = "Analyze the text in this image."
+    if request.image_base64:
+        print("Processing image with Gemini Vision...")
+        extracted_text = extract_text_from_image(request.image_base64)
+        print(f"Extracted Text: {extracted_text[:100]}...")
+        
+        if query:
+            query = f"{query}\n\nContext from Image: {extracted_text}"
+        else:
+            query = f"Analyze this text found in an image: {extracted_text}"
     
     if not query:
         raise HTTPException(status_code=400, detail="No text or image provided")

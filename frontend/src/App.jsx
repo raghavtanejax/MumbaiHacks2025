@@ -26,7 +26,7 @@ function App() {
         },
         body: JSON.stringify({
           text: claim,
-          image: imageBase64 // Changed from image_base64 to image
+          image_base64: imageBase64
         }),
         signal: controller.signal
       })

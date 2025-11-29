@@ -4,10 +4,18 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import Tool
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+import time
 
 # Real OCR using Gemini Vision
 def extract_text_from_image(image_base64: str) -> str:
     try:
+        start_time = time.time()
+        print("DEBUG: Starting OCR extraction...")
+        
         if not image_base64:
             return ""
             
@@ -15,7 +23,15 @@ def extract_text_from_image(image_base64: str) -> str:
         if "," in image_base64:
             image_base64 = image_base64.split(",")[1]
 
-        llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0)
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            return "Error: GOOGLE_API_KEY not found in environment."
+
+        llm = ChatGoogleGenerativeAI(
+            model="gemini-1.5-pro", 
+            temperature=0,
+            google_api_key=api_key
+        )
         
         message = HumanMessage(
             content=[
@@ -25,6 +41,8 @@ def extract_text_from_image(image_base64: str) -> str:
         )
         
         response = llm.invoke([message])
+        end_time = time.time()
+        print(f"DEBUG: OCR completed in {end_time - start_time:.2f} seconds")
         return response.content
     except Exception as e:
         print(f"OCR Error: {e}")
@@ -122,17 +140,24 @@ class LangGraphAdapter:
                 "corrective_information": None
             }
 
+from rag import rag_tool
+
+# ...
+
 def get_agent():
     try:
         # Initialize LLM - Switching to Gemini 1.5 Pro
         # Ensure GOOGLE_API_KEY is set in your .env file
+        api_key = os.getenv("GOOGLE_API_KEY")
         llm = ChatGoogleGenerativeAI(
             model="gemini-1.5-pro",
             temperature=0,
+            google_api_key=api_key,
             convert_system_message_to_human=True # Sometimes needed for Gemini
         )
 
         tools = [
+            rag_tool, # RAG tool first!
             DuckDuckGoSearchRun(),
             Tool(
                 name="Medical DB",

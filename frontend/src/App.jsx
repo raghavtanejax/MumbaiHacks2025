@@ -3,13 +3,12 @@ import './index.css'
 
 function App() {
   const [claim, setClaim] = useState('')
-  const [imageBase64, setImageBase64] = useState(null)
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null) // Added error state
 
   const analyzeClaim = async () => {
-    if (!claim && !imageBase64) return
+    if (!claim) return
 
     setLoading(true)
     setResult(null)
@@ -17,7 +16,7 @@ function App() {
 
     try {
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 60000) // 60 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 120000) // 120 second timeout
 
       const response = await fetch('http://localhost:8000/analyze', {
         method: 'POST',
@@ -25,8 +24,7 @@ function App() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text: claim,
-          image_base64: imageBase64
+          text: claim
         }),
         signal: controller.signal
       })
@@ -34,7 +32,7 @@ function App() {
       clearTimeout(timeoutId)
 
       if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`)
+        throw new Error(`Server error: ${response.status} `)
       }
 
       const data = await response.json()
@@ -89,27 +87,6 @@ function App() {
             onChange={(e) => setClaim(e.target.value)}
           />
 
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--color-text-muted)' }}>
-              Or upload an image (e.g., screenshot of a post)
-            </label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files[0];
-                if (file) {
-                  const reader = new FileReader();
-                  reader.onloadend = () => {
-                    setImageBase64(reader.result);
-                    if (!claim) setClaim("Image uploaded");
-                  };
-                  reader.readAsDataURL(file);
-                }
-              }}
-            />
-          </div>
-
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button
               className="btn btn-primary"
@@ -131,8 +108,8 @@ function App() {
         {result && (
           <div className="card" style={{
             marginTop: '2rem', borderTop: `4px solid ${result.verdict.includes('True') ? 'var(--color-success)' :
-              result.verdict.includes('False') || result.verdict.includes('Misleading') ? 'var(--color-danger)' : 'var(--color-warning)'
-              }`
+                result.verdict.includes('False') || result.verdict.includes('Misleading') ? 'var(--color-danger)' : 'var(--color-warning)'
+              } `
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <div>

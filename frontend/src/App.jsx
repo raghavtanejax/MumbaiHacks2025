@@ -3,6 +3,7 @@ import './index.css'
 
 function App() {
   const [claim, setClaim] = useState('')
+  const [imageBase64, setImageBase64] = useState(null)
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null) // Added error state
@@ -24,7 +25,8 @@ function App() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text: claim
+          text: claim,
+          image_base64: null
         }),
         signal: controller.signal
       })
@@ -32,7 +34,7 @@ function App() {
       clearTimeout(timeoutId)
 
       if (!response.ok) {
-        throw new Error(`Server error: ${response.status} `)
+        throw new Error(`Server error: ${response.status}`)
       }
 
       const data = await response.json()
@@ -64,7 +66,7 @@ function App() {
           <div className="card glass" style={{ padding: '1.5rem' }}>
             <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📝</div>
             <h3 style={{ fontSize: '1.1rem' }}>1. Submit Claim</h3>
-            <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>Paste text or upload an image.</p>
+            <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>Paste text to analyze.</p>
           </div>
           <div className="card glass" style={{ padding: '1.5rem' }}>
             <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🤖</div>
@@ -108,8 +110,8 @@ function App() {
         {result && (
           <div className="card" style={{
             marginTop: '2rem', borderTop: `4px solid ${result.verdict.includes('True') ? 'var(--color-success)' :
-                result.verdict.includes('False') || result.verdict.includes('Misleading') ? 'var(--color-danger)' : 'var(--color-warning)'
-              } `
+              result.verdict.includes('False') || result.verdict.includes('Misleading') ? 'var(--color-danger)' : 'var(--color-warning)'
+              }`
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <div>
